@@ -20,7 +20,7 @@ local MINE_COLUMNS = {
 	{ x = 344, width = 60, justify = "CENTER" },
 }
 local REMOVE_SIZE = 18
-local CREDIT = "with |TInterface\\AddOns\\NamesRanking\\Heart.tga:12:12|t by kames"
+local CREDIT = "with |TInterface\\AddOns\\NamesRanking\\Media\\Heart.tga:12:12|t by kames"
 local HEADERS = {
 	top = { "#", "Name", "Points", "Votes" },
 	mine = { "Rank", "Name", "Your vote", "Points", "Remove" },

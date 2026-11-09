@@ -4,15 +4,15 @@
 ## Author: kames
 ## Version: 1.6.0
 ## X-Curse-Project-ID: 1794028
-## IconTexture: Interface\AddOns\NamesRanking\Logo.tga
+## IconTexture: Interface\AddOns\NamesRanking\Media\Logo.tga
 ## SavedVariables: NamesRankingDB
 
-Compat.lua
-Core.lua
-Votes.lua
-Ranking.lua
-Comm.lua
-Widgets.lua
-WhoHook.lua
-Leaderboard.lua
-MinimapButton.lua
+Core\Compat.lua
+Core\Core.lua
+Core\Votes.lua
+Core\Ranking.lua
+Core\Comm.lua
+UI\Widgets.lua
+UI\WhoHook.lua
+UI\Leaderboard.lua
+UI\MinimapButton.lua

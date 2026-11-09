@@ -3,7 +3,7 @@ local _, NR = ...
 local MinimapButton = {}
 NR.MinimapButton = MinimapButton
 
-local LOGO = "Interface\\AddOns\\NamesRanking\\Logo.tga"
+local LOGO = "Interface\\AddOns\\NamesRanking\\Media\\Logo.tga"
 local SIZE = 32
 local DEFAULT_ANGLE = 215
 
