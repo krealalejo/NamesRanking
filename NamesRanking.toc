@@ -1,0 +1,18 @@
+## Interface: 16001, 16000, 120105, 120100, 120001, 120000
+## Title: Names Ranking
+## Notes: Vote for the best character names from the /who list and see the leaderboard with /nr.
+## Author: kames
+## Version: 1.6.0
+## X-Curse-Project-ID: 1794028
+## IconTexture: Interface\AddOns\NamesRanking\Logo.tga
+## SavedVariables: NamesRankingDB
+
+Compat.lua
+Core.lua
+Votes.lua
+Ranking.lua
+Comm.lua
+Widgets.lua
+WhoHook.lua
+Leaderboard.lua
+MinimapButton.lua
