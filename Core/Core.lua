@@ -105,6 +105,7 @@ NR:On("PLAYER_LOGIN", function()
 	NR.Comm:Init()
 	NR.WhoHook:Init()
 	NR.Leaderboard:Init()
+	NR.UnitMenu:Init()
 	NR.MinimapButton:Init()
 end)
 

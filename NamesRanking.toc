@@ -15,4 +15,5 @@ Core\Comm.lua
 UI\Widgets.lua
 UI\WhoHook.lua
 UI\Leaderboard.lua
+UI\UnitMenu.lua
 UI\MinimapButton.lua
