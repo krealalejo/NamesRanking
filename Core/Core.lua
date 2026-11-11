@@ -1,6 +1,7 @@
 local ADDON_NAME, NR = ...
 
-NR.VERSION = "1.6.0"
+local GetMetadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+NR.VERSION = GetMetadata and GetMetadata(ADDON_NAME, "Version") or "?"
 NR.PROTOCOL = 2
 NR.PREFIX = "NRnk"
 NR.MAX_VOTE = 3
