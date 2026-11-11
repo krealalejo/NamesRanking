@@ -29,6 +29,7 @@ Search for **Names Ranking** in the CurseForge app under your WoW Forever instal
 | Command | What it does |
 | --- | --- |
 | `/nr` | Open or close the leaderboard |
+| `/nr vote <First Surname> <1-3>` | Vote without the `/who` window (`0` removes your vote). Capital letters don't matter |
 | `/nr sync on\|off` | Share votes with other players, or keep them on this computer |
 
 ## How sync works

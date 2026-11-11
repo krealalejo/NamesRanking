@@ -119,7 +119,50 @@ local commands = {}
 function commands.help()
 	NR:Print("v" .. NR.VERSION .. " commands:")
 	Line("/nr - open or close the leaderboard")
+	Line("/nr vote <First Surname> <1-3> - vote without the /who window (0 removes your vote)")
 	Line("/nr sync on|off - share votes with other players or keep them local")
+end
+
+local function Lower(text)
+	return (text:lower():gsub("\195([\128-\158])", function(c)
+		local b = c:byte()
+		if b == 151 then return "\195" .. c end
+		return "\195" .. string.char(b + 32)
+	end))
+end
+
+local function Capitalize(word)
+	local b1, b2 = word:byte(1, 2)
+	if b1 == 195 and b2 and b2 >= 160 and b2 <= 190 and b2 ~= 183 then
+		return "\195" .. string.char(b2 - 32) .. word:sub(3)
+	end
+	return word:sub(1, 1):upper() .. word:sub(2)
+end
+
+local function FromTyped(text)
+	local name = Lower(strtrim(text)):gsub("%s+", " "):gsub("%S+", Capitalize)
+	return name
+end
+
+function commands.vote(rest)
+	local typed, value = rest:match("^(.-)%s+(%d)$")
+	value = tonumber(value)
+	local name = typed and FromTyped(typed)
+	if not name or not name:find("^[^%s%d%-]+ [^%s%d%-]+$") or not value or value > NR.MAX_VOTE then
+		NR:Print("usage: /nr vote <First Surname> <1-3>  (0 removes your vote)")
+		return
+	end
+	if value == 0 and NR.Votes:GetMyVote(name) == 0 then
+		NR:Print(("you haven't voted for %s."):format(NR.ColoredName(name)))
+		return
+	end
+	if NR.Votes:CastLocal(name, value) then
+		if value == 0 then
+			NR:Print(("removed your vote for %s."):format(NR.ColoredName(name)))
+		else
+			NR:Print(("you gave %s to %s."):format(NR.Plural(value, "point"), NR.ColoredName(name)))
+		end
+	end
 end
 
 function commands.sync(rest)
