@@ -3,40 +3,51 @@ local _, NR = ...
 local Leaderboard = {}
 NR.Leaderboard = Leaderboard
 
-local WIDTH, HEIGHT = 560, 450
-local ROWS, ROW_HEIGHT = 16, 20
-local LIST_TOP = -84
-local TOP_COLUMNS = {
-	{ x = 14, width = 46, justify = "LEFT" },
-	{ x = 62, width = 150, justify = "LEFT" },
-	{ x = 214, width = 50, justify = "RIGHT" },
-	{ x = 266, width = 44, justify = "RIGHT" },
-	{ x = 322, width = 118, justify = "LEFT" },
-	{ x = 446, width = 62, justify = "CENTER" },
-}
-local COLUMNS = {
-	top = TOP_COLUMNS,
-	mine = {
-		{ x = 14, width = 46, justify = "LEFT" },
-		{ x = 62, width = 220, justify = "LEFT" },
-		{ x = 290, width = 70, justify = "RIGHT" },
-		{ x = 370, width = 60, justify = "RIGHT" },
-		{ x = 446, width = 62, justify = "CENTER" },
-	},
-	recent = { TOP_COLUMNS[1], TOP_COLUMNS[2], TOP_COLUMNS[3], TOP_COLUMNS[4] },
-}
-local MAX_COLUMNS = #TOP_COLUMNS
+local WIDTH, HEIGHT = 560, 460
+local ROWS = 14
+local ROW_HEIGHT, PODIUM_HEIGHT, PODIUM_SIZE = 24, 30, 3
+local LIST_TOP = -76
+local LIST_HEIGHT = PODIUM_SIZE * PODIUM_HEIGHT + (ROWS - PODIUM_SIZE) * ROW_HEIGHT
+local HEADER_TOP = -58
+local ROW_LEFT = 12
+local SLOT_RIGHT = 416
 local BUTTON_SIZE, BUTTON_GAP = 18, 2
-local CREDIT = "with |TInterface\\AddOns\\NamesRanking\\Media\\Heart.tga:12:12|t by kames"
+local COLUMNS = {
+	{ x = 16, width = 36, justify = "LEFT" },
+	{ x = 54, width = 270, justify = "LEFT" },
+	{ x = 330, width = 86, justify = "RIGHT" },
+	{ x = 420, width = 52, justify = "RIGHT" },
+	{ x = 476, width = 40, justify = "RIGHT" },
+}
 local HEADERS = {
-	top = { "#", "Name", "Points", "Votes", "First vote", "Vote" },
-	mine = { "Rank", "Name", "Your vote", "Points", "Remove" },
-	recent = { "When", "Name", "", "Vote" },
+	top = { "#", "Name", "", "Points", "Votes" },
+	mine = { "#", "Name", "Your vote", "Points", "" },
+	recent = { "When", "Name", "", "Vote", "" },
 }
 local TABS = {
-	{ key = "top", label = "Realm top" },
+	{ key = "top", label = "Top" },
 	{ key = "mine", label = "My votes" },
 	{ key = "recent", label = "Recent" },
+}
+local RANK_COLORS = {
+	{ 1, 0.82, 0 },
+	{ 0.84, 0.86, 0.89 },
+	{ 0.83, 0.54, 0.31 },
+}
+local MUTED = { 0.6, 0.6, 0.6 }
+local STAR = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:0|t"
+local CREDIT = "with |TInterface\\AddOns\\NamesRanking\\Media\\Heart.tga:12:12|t by kames"
+
+local function Font(name, fallback)
+	return _G[name] or _G[fallback]
+end
+
+local FONTS = {
+	rank = Font("GameFontHighlightSmall", "GameFontHighlight"),
+	text = Font("GameFontHighlight", "GameFontHighlightSmall"),
+	big = Font("GameFontHighlightMedium", "GameFontHighlight"),
+	bigRank = Font("GameFontNormalLarge", "GameFontNormal"),
+	small = Font("GameFontHighlightSmall", "GameFontHighlight"),
 }
 
 local frame
@@ -58,7 +69,7 @@ local function BuildItems(filter)
 	if mode == "top" then
 		for _, entry in ipairs(NR.Ranking:GetList()) do
 			if Matches(entry.name, filter) then
-				items[#items + 1] = { name = entry.name, entry.rank, NR.ColoredName(entry.name), entry.points, entry.votes, NR.ColoredName(entry.firstVoter), "" }
+				items[#items + 1] = { name = entry.name, rank = entry.rank, entry.rank, NR.ColoredName(entry.name), "", entry.points, entry.votes }
 			end
 		end
 	elseif mode == "mine" then
@@ -66,7 +77,8 @@ local function BuildItems(filter)
 			if vote[1] > 0 and Matches(name, filter) then
 				local entry = NR.Ranking:GetEntry(name)
 				local points = entry and entry.points or 0
-				items[#items + 1] = { name = name, vote = vote[1], points = points, entry and entry.rank or "-", NR.ColoredName(name), vote[1], points }
+				local rank = entry and entry.rank
+				items[#items + 1] = { name = name, vote = vote[1], points = points, rank = rank, rank or "-", NR.ColoredName(name), "", points, "" }
 			end
 		end
 		table.sort(items, function(a, b)
@@ -76,10 +88,43 @@ local function BuildItems(filter)
 	else
 		for _, vote in ipairs(NR.Votes:GetRecent(200)) do
 			if Matches(vote.target, filter) then
-				items[#items + 1] = { name = vote.target, NR.Ago(vote.ts), NR.ColoredName(vote.target), "", vote.value }
+				items[#items + 1] = { name = vote.target, NR.Ago(vote.ts), NR.ColoredName(vote.target), "", vote.value, "" }
 			end
 		end
 	end
+end
+
+local function IsPodium(item)
+	return mode == "top" and item.rank ~= nil and item.rank <= PODIUM_SIZE
+end
+
+local function RowHeight(item)
+	return IsPodium(item) and PODIUM_HEIGHT or ROW_HEIGHT
+end
+
+local function MaxOffset()
+	local height, fit = 0, 0
+	for i = #items, 1, -1 do
+		height = height + RowHeight(items[i])
+		if height > LIST_HEIGHT then break end
+		fit = fit + 1
+	end
+	return math.max(0, #items - fit)
+end
+
+local function Summary()
+	local voters = 0
+	for voter, list in pairs(NR.Votes:GetAll()) do
+		if not NR:IsBlocked(voter) then
+			for _, entry in pairs(list) do
+				if entry[1] > 0 then
+					voters = voters + 1
+					break
+				end
+			end
+		end
+	end
+	return ("%s · %s"):format(NR.Plural(#NR.Ranking:GetList(), "name"), NR.Plural(voters, "voter"))
 end
 
 local function ShowRowTooltip(row)
@@ -118,46 +163,113 @@ local function ShowRemoveTooltip(button)
 	GameTooltip:Show()
 end
 
+local function UpdateSlot(row)
+	local item = row.item
+	local votable = item ~= nil and mode ~= "recent" and item.name ~= NR.player
+	local mine = votable and NR.Votes:GetMyVote(item.name) or 0
+	local hovered = row.hovered
+	row.badge:SetShown(mine > 0)
+	if mine > 0 then
+		row.badge:SetText(STAR .. mine)
+	end
+	row.remove:SetShown(hovered and mine > 0)
+	if votable and hovered and mine == 0 then
+		row.vote.name = item.name
+		NR.UpdateVoteButtons(row.vote)
+	else
+		row.vote.name = nil
+		row.vote:Hide()
+	end
+end
+
+local function SetHovered(row, hovered)
+	row.hovered = hovered
+	row.highlight:SetShown(hovered)
+	UpdateSlot(row)
+end
+
+local function CheckHover(row)
+	if not row:IsMouseOver() then
+		SetHovered(row, false)
+	end
+end
+
+local function StyleRow(row, item)
+	local podium = IsPodium(item)
+	local cols = row.cols
+	cols[1]:SetFontObject(podium and FONTS.bigRank or FONTS.rank)
+	cols[2]:SetFontObject(podium and FONTS.big or FONTS.text)
+	cols[4]:SetFontObject(podium and FONTS.big or FONTS.text)
+	cols[5]:SetFontObject(FONTS.small)
+	local rankColor = mode ~= "recent" and item.rank and RANK_COLORS[item.rank] or MUTED
+	cols[1]:SetTextColor(unpack(rankColor))
+	cols[2]:SetTextColor(1, 1, 1)
+	cols[4]:SetTextColor(1, 1, 1)
+	cols[5]:SetTextColor(unpack(MUTED))
+end
+
 local function CreateRow(parent, i)
 	local row = CreateFrame("Button", nil, parent)
 	row:SetSize(WIDTH - 48, ROW_HEIGHT)
-	row:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, LIST_TOP - (i - 1) * ROW_HEIGHT)
 	if i % 2 == 0 then
 		local stripe = row:CreateTexture(nil, "BACKGROUND")
 		stripe:SetAllPoints()
 		stripe:SetColorTexture(1, 1, 1, 0.04)
 	end
-	row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+	row.highlight = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+	row.highlight:SetAllPoints()
+	row.highlight:SetColorTexture(1, 0.82, 0, 0.10)
+	row.highlight:Hide()
 
 	row.cols = {}
-	for c = 1, MAX_COLUMNS do
-		local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	for c, col in ipairs(COLUMNS) do
+		local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 		text:SetWordWrap(false)
+		text:SetPoint("LEFT", row, "LEFT", col.x - ROW_LEFT, 0)
+		text:SetWidth(col.width)
+		text:SetJustifyH(col.justify)
 		row.cols[c] = text
 	end
 
-	local removeColumn = COLUMNS.mine[5]
+	row.vote = NR.CreateVoteButtons(row, BUTTON_SIZE, BUTTON_GAP, false)
+	row.vote:SetPoint("RIGHT", row, "LEFT", SLOT_RIGHT - ROW_LEFT, 0)
+	row.vote:Hide()
+
 	row.remove = NR.CreateRemoveButton(row, BUTTON_SIZE)
-	row.remove:SetPoint("CENTER", row, "LEFT", removeColumn.x + removeColumn.width / 2 - 12, 0)
+	row.remove:SetPoint("RIGHT", row, "LEFT", SLOT_RIGHT - ROW_LEFT, 0)
 	row.remove:SetScript("OnClick", OnRemoveClick)
 	row.remove:SetScript("OnEnter", ShowRemoveTooltip)
 	row.remove:SetScript("OnLeave", GameTooltip_Hide)
 	row.remove:Hide()
 
-	local voteColumn = TOP_COLUMNS[6]
-	row.vote = NR.CreateVoteButtons(row, BUTTON_SIZE, BUTTON_GAP, false)
-	row.vote:SetPoint("CENTER", row, "LEFT", voteColumn.x + voteColumn.width / 2 - 12, 0)
-	row.vote:Hide()
+	row.badge = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	row.badge:SetPoint("RIGHT", row.remove, "LEFT", -4, 0)
+	row.badge:Hide()
 
-	row:SetScript("OnEnter", ShowRowTooltip)
-	row:SetScript("OnLeave", GameTooltip_Hide)
+	local children = { row.remove }
+	for v = 1, NR.MAX_VOTE do
+		children[#children + 1] = row.vote.buttons[v]
+	end
+	for _, child in ipairs(children) do
+		child:HookScript("OnEnter", function() SetHovered(row, true) end)
+		child:HookScript("OnLeave", function() CheckHover(row) end)
+	end
+
+	row:SetScript("OnEnter", function(self)
+		SetHovered(self, true)
+		ShowRowTooltip(self)
+	end)
+	row:SetScript("OnLeave", function(self)
+		GameTooltip_Hide()
+		CheckHover(self)
+	end)
 	return row
 end
 
 local function CreateScrollBar(parent)
 	local bar = CreateFrame("Slider", nil, parent)
 	bar:SetOrientation("VERTICAL")
-	bar:SetSize(12, ROWS * ROW_HEIGHT)
+	bar:SetSize(12, LIST_HEIGHT)
 	bar:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -14, LIST_TOP)
 
 	local track = bar:CreateTexture(nil, "BACKGROUND")
@@ -180,6 +292,53 @@ local function CreateScrollBar(parent)
 		end
 	end)
 	return bar
+end
+
+local function CreateTabs(f)
+	f.tabs = {}
+	for i, def in ipairs(TABS) do
+		local ok, tab = pcall(CreateFrame, "Button", "NamesRankingFrameTab" .. i, f, "PanelTabButtonTemplate")
+		if ok and tab then
+			f.usesPanelTabs = true
+		else
+			tab = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+			tab:SetSize(88, 22)
+		end
+		tab:SetID(i)
+		tab:SetText(def.label)
+		if f.usesPanelTabs and PanelTemplates_TabResize then
+			PanelTemplates_TabResize(tab, 0)
+		end
+		if i == 1 then
+			tab:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 8, 2)
+		else
+			tab:SetPoint("LEFT", f.tabs[i - 1], "RIGHT", f.usesPanelTabs and -14 or 4, 0)
+		end
+		tab:SetScript("OnClick", function()
+			mode = def.key
+			Leaderboard:Refresh(true)
+		end)
+		f.tabs[i] = tab
+	end
+	if f.usesPanelTabs and PanelTemplates_SetNumTabs then
+		f.Tabs = f.tabs
+		PanelTemplates_SetNumTabs(f, #f.tabs)
+	end
+end
+
+local function SelectTab()
+	for i, def in ipairs(TABS) do
+		if def.key == mode then
+			if frame.usesPanelTabs and PanelTemplates_SetTab then
+				PanelTemplates_SetTab(frame, i)
+			else
+				for j, tab in ipairs(frame.tabs) do
+					tab:SetEnabled(j ~= i)
+				end
+			end
+			return
+		end
+	end
 end
 
 local function CreateMainFrame()
@@ -215,23 +374,11 @@ local function CreateMainFrame()
 	end
 	title:SetText("Names Ranking")
 
-	f.tabs = {}
-	for i, def in ipairs(TABS) do
-		local tab = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-		tab:SetSize(88, 22)
-		tab:SetPoint("TOPLEFT", f, "TOPLEFT", 12 + (i - 1) * 92, -32)
-		tab:SetText(def.label)
-		tab.key = def.key
-		tab:SetScript("OnClick", function()
-			mode = def.key
-			Leaderboard:Refresh(true)
-		end)
-		f.tabs[i] = tab
-	end
+	CreateTabs(f)
 
 	local search = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
-	search:SetSize(116, 20)
-	search:SetPoint("TOPRIGHT", f, "TOPRIGHT", -18, -33)
+	search:SetSize(140, 20)
+	search:SetPoint("TOPRIGHT", f, "TOPRIGHT", -18, -30)
 	search:SetAutoFocus(false)
 	search:SetMaxLetters(24)
 	local hint = search:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -246,13 +393,17 @@ local function CreateMainFrame()
 	f.search = search
 
 	f.headers = {}
-	for c = 1, MAX_COLUMNS do
-		f.headers[c] = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	for c, col in ipairs(COLUMNS) do
+		local header = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+		header:SetPoint("TOPLEFT", f, "TOPLEFT", col.x, HEADER_TOP)
+		header:SetWidth(col.width)
+		header:SetJustifyH(col.justify)
+		f.headers[c] = header
 	end
 	local divider = f:CreateTexture(nil, "ARTWORK")
 	divider:SetColorTexture(1, 1, 1, 0.15)
-	divider:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -79)
-	divider:SetPoint("TOPRIGHT", f, "TOPRIGHT", -30, -79)
+	divider:SetPoint("TOPLEFT", f, "TOPLEFT", ROW_LEFT, LIST_TOP + 5)
+	divider:SetPoint("TOPRIGHT", f, "TOPRIGHT", -30, LIST_TOP + 5)
 	divider:SetHeight(1)
 
 	f.rows = {}
@@ -264,6 +415,15 @@ local function CreateMainFrame()
 	f.empty = f:CreateFontString(nil, "OVERLAY", "GameFontDisable")
 	f.empty:SetPoint("TOP", f, "TOP", 0, LIST_TOP - 40)
 	f.empty:SetWidth(WIDTH - 60)
+
+	local footer = f:CreateTexture(nil, "ARTWORK")
+	footer:SetColorTexture(1, 1, 1, 0.08)
+	footer:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", ROW_LEFT, 30)
+	footer:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 30)
+	footer:SetHeight(1)
+
+	f.summary = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	f.summary:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 16, 12)
 
 	f.credit = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	f.credit:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 12)
@@ -278,54 +438,29 @@ local function CreateMainFrame()
 	return f
 end
 
-local function PlaceColumn(text, parent, point, x, y, col)
-	text:ClearAllPoints()
-	text:SetPoint(point, parent, point, x, y)
-	text:SetWidth(col.width)
-	text:SetJustifyH(col.justify)
-end
-
-function Leaderboard:PlaceColumns()
-	if frame.columnsMode == mode then return end
-	frame.columnsMode = mode
-	local columns = COLUMNS[mode]
-	for c, header in ipairs(frame.headers) do
-		local col = columns[c]
-		header:SetShown(col ~= nil)
-		if col then
-			PlaceColumn(header, frame, "TOPLEFT", col.x, -66, col)
-			header:SetText(HEADERS[mode][c])
-		end
-	end
-	for _, row in ipairs(frame.rows) do
-		for c, text in ipairs(row.cols) do
-			local col = columns[c]
-			text:SetShown(col ~= nil)
-			if col then
-				PlaceColumn(text, row, "LEFT", col.x - 12, 0, col)
-			end
-		end
-	end
-end
-
 function Leaderboard:RenderRows()
-	for i, row in ipairs(frame.rows) do
-		local item = items[offset + i]
-		row.item = item
-		if item then
-			for c = 1, MAX_COLUMNS do
+	local y, index = 0, offset + 1
+	for _, row in ipairs(frame.rows) do
+		local item = items[index]
+		local height = item and RowHeight(item)
+		if item and y + height <= LIST_HEIGHT then
+			row:SetHeight(height)
+			row:SetPoint("TOPLEFT", frame, "TOPLEFT", ROW_LEFT, LIST_TOP - y)
+			row.item = item
+			StyleRow(row, item)
+			for c = 1, #COLUMNS do
 				row.cols[c]:SetText(item[c] ~= nil and tostring(item[c]) or "")
 			end
-			row.remove:SetShown(mode == "mine")
-			if mode == "top" then
-				row.vote.name = item.name
-				NR.UpdateVoteButtons(row.vote)
-			else
-				row.vote.name = nil
-				row.vote:Hide()
-			end
 			row:Show()
+			row.hovered = row:IsMouseOver()
+			row.highlight:SetShown(row.hovered)
+			UpdateSlot(row)
+			y = y + height
+			index = index + 1
 		else
+			row.item = nil
+			row.hovered = false
+			row.highlight:Hide()
 			row:Hide()
 		end
 	end
@@ -336,26 +471,27 @@ function Leaderboard:Refresh(resetScroll)
 	local filter = strtrim(frame.search:GetText() or ""):lower()
 	BuildItems(filter)
 
-	local maxOffset = math.max(0, #items - ROWS)
+	local maxOffset = MaxOffset()
 	if resetScroll then offset = 0 end
 	offset = math.min(offset, maxOffset)
 	frame.scrollBar:SetMinMaxValues(0, maxOffset)
 	frame.scrollBar:SetValue(offset)
 	frame.scrollBar:SetShown(maxOffset > 0)
 
-	self:PlaceColumns()
-	for _, tab in ipairs(frame.tabs) do
-		tab:SetEnabled(tab.key ~= mode)
+	for c, header in ipairs(frame.headers) do
+		header:SetText(HEADERS[mode][c])
 	end
+	SelectTab()
 
 	if filter ~= "" then
 		frame.empty:SetText("No names match your search.")
 	elseif mode == "mine" then
-		frame.empty:SetText("You haven't voted yet. Click 1, 2 or 3 next to a name in Realm top or /who.")
+		frame.empty:SetText("You haven't voted yet. Hover a name in Top, or open /who, and click 1, 2 or 3.")
 	else
 		frame.empty:SetText("No votes yet. Open /who and vote for your favorite names!")
 	end
 	frame.empty:SetShown(#items == 0)
+	frame.summary:SetText(Summary())
 
 	self:RenderRows()
 end
