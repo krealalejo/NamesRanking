@@ -5,38 +5,11 @@ NR.WhoHook = WhoHook
 
 local BUTTON_SIZE = 26
 local BUTTON_GAP = 2
-local REMOVE = 0
 
 local holders = {}
 
 local function IsFrame(value)
 	return type(value) == "table" and type(value.GetObjectType) == "function" and (pcall(value.GetObjectType, value))
-end
-
-local function ShowButtonTooltip(button)
-	local name = button:GetParent().name
-	if not name then return end
-	local mine = NR.Votes:GetMyVote(name)
-	local entry = NR.Ranking:GetEntry(name)
-
-	GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
-	GameTooltip:AddLine(NR.ColoredName(name))
-	if entry then
-		GameTooltip:AddLine(("Rank #%d - %d points - %d votes"):format(entry.rank, entry.points, entry.votes), 1, 1, 1)
-	else
-		GameTooltip:AddLine("No votes yet", 0.7, 0.7, 0.7)
-	end
-	if mine > 0 then
-		GameTooltip:AddLine(("Your vote: %d"):format(mine), 1, 0.82, 0)
-	end
-	if button.value == REMOVE then
-		GameTooltip:AddLine(mine > 0 and "Click to remove your vote" or "You haven't voted for this name", 0.6, 0.6, 0.6)
-	elseif mine == button.value then
-		GameTooltip:AddLine("This is your current vote", 0.6, 0.6, 0.6)
-	else
-		GameTooltip:AddLine(("Click to give %d point%s"):format(button.value, button.value == 1 and "" or "s"), 0.6, 0.6, 0.6)
-	end
-	GameTooltip:Show()
 end
 
 local function FindRightEdgeButton(row, holder)
@@ -68,65 +41,12 @@ end
 
 local function UpdateHolder(holder)
 	AnchorHolder(holder)
-	local name = holder.name
-	if not name or name == NR.player then
-		holder:Hide()
-		return
-	end
-	local mine = NR.Votes:GetMyVote(name)
-	for i = 1, NR.MAX_VOTE do
-		local button = holder.buttons[i]
-		local active = mine == i
-		button.fill:SetShown(active)
-		if active then
-			button.label:SetTextColor(0.15, 0.08, 0)
-		elseif mine == 0 then
-			button.label:SetTextColor(1, 0.82, 0)
-		else
-			button.label:SetTextColor(0.6, 0.6, 0.6)
-		end
-	end
-	local remove = holder.buttons[REMOVE]
-	remove:SetEnabled(mine > 0)
-	remove:SetAlpha(mine > 0 and 1 or 0.35)
-	holder:Show()
-end
-
-local function OnButtonClick(button)
-	local holder = button:GetParent()
-	if not holder.name then return end
-	NR.Votes:CastLocal(holder.name, button.value)
-	UpdateHolder(holder)
-	ShowButtonTooltip(button)
-end
-
-local function CreateButton(holder, value, position)
-	local button
-	if value == REMOVE then
-		button = NR.CreateRemoveButton(holder, BUTTON_SIZE)
-	else
-		button = NR.CreateMenuButton(holder, BUTTON_SIZE, tostring(value), 1, 0.82, 0, 0.85)
-	end
-	button:SetPoint("LEFT", holder, "LEFT", (position - 1) * (BUTTON_SIZE + BUTTON_GAP), 0)
-	button.value = value
-	button:SetScript("OnClick", OnButtonClick)
-	button:SetScript("OnEnter", ShowButtonTooltip)
-	button:SetScript("OnLeave", GameTooltip_Hide)
-	return button
+	NR.UpdateVoteButtons(holder)
 end
 
 local function CreateHolder(row)
-	local count = NR.MAX_VOTE + 1
-	local holder = CreateFrame("Frame", nil, row)
-	holder:SetSize(count * BUTTON_SIZE + (count - 1) * BUTTON_GAP, BUTTON_SIZE)
+	local holder = NR.CreateVoteButtons(row, BUTTON_SIZE, BUTTON_GAP, true)
 	holder:SetPoint("RIGHT", row, "RIGHT", -4, 0)
-	holder:SetFrameLevel(row:GetFrameLevel() + 5)
-	holder.buttons = {}
-	for i = 1, NR.MAX_VOTE do
-		holder.buttons[i] = CreateButton(holder, i, i)
-	end
-	holder.buttons[REMOVE] = CreateButton(holder, REMOVE, count)
-
 	holders[row] = holder
 	return holder
 end
