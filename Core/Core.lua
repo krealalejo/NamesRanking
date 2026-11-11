@@ -67,6 +67,10 @@ function NR.ColoredName(name)
 	return name
 end
 
+function NR.Plural(count, word)
+	return count .. " " .. word .. (count == 1 and "" or "s")
+end
+
 function NR.Ago(ts)
 	local diff = math.max(0, GetServerTime() - ts)
 	if diff < 60 then return "just now" end

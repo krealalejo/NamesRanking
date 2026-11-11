@@ -89,8 +89,12 @@ local function ShowRowTooltip(row)
 	GameTooltip:AddLine(NR.ColoredName(name))
 	local entry = NR.Ranking:GetEntry(name)
 	if entry then
-		GameTooltip:AddLine(("Rank #%d - %d points"):format(entry.rank, entry.points), 1, 1, 1)
-		GameTooltip:AddLine(("%d votes, %d of them worth 3 points"):format(entry.votes, entry.threes), 0.8, 0.8, 0.8)
+		GameTooltip:AddLine(("Rank #%d - %s"):format(entry.rank, NR.Plural(entry.points, "point")), 1, 1, 1)
+		local votes = NR.Plural(entry.votes, "vote")
+		if entry.threes > 0 then
+			votes = ("%s, %d worth 3 points"):format(votes, entry.threes)
+		end
+		GameTooltip:AddLine(votes, 0.8, 0.8, 0.8)
 		GameTooltip:AddLine(("First voted by %s, %s"):format(NR.ColoredName(entry.firstVoter), NR.Ago(entry.firstTs)), 0.8, 0.8, 0.8)
 	end
 	local mine = NR.Votes:GetMyVote(name)

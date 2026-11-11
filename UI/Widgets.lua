@@ -54,7 +54,7 @@ local function ShowVoteTooltip(button)
 	GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
 	GameTooltip:AddLine(NR.ColoredName(name))
 	if entry then
-		GameTooltip:AddLine(("Rank #%d - %d points - %d votes"):format(entry.rank, entry.points, entry.votes), 1, 1, 1)
+		GameTooltip:AddLine(("Rank #%d - %s - %s"):format(entry.rank, NR.Plural(entry.points, "point"), NR.Plural(entry.votes, "vote")), 1, 1, 1)
 	else
 		GameTooltip:AddLine("No votes yet", 0.7, 0.7, 0.7)
 	end
