@@ -3,7 +3,7 @@ local _, NR = ...
 local Ranking = {}
 NR.Ranking = Ranking
 
-local list, byName, voters = {}, {}, 0
+local list, byName = {}, {}
 local dirty = true
 
 function Ranking:Init()
@@ -22,10 +22,9 @@ local function ByScore(a, b)
 end
 
 local function Rebuild()
-	local totals, activeVoters = {}, 0
+	local totals = {}
 	for voter, votes in pairs(NR.Votes:GetAll()) do
 		if not NR:IsBlocked(voter) then
-			local active = false
 			for target, entry in pairs(votes) do
 				local value = entry[1]
 				if value > 0 then
@@ -39,11 +38,7 @@ local function Rebuild()
 					if value == NR.MAX_VOTE then
 						total.threes = total.threes + 1
 					end
-					active = true
 				end
-			end
-			if active then
-				activeVoters = activeVoters + 1
 			end
 		end
 	end
@@ -57,7 +52,7 @@ local function Rebuild()
 		total.rank = i
 	end
 
-	list, byName, voters = sorted, totals, activeVoters
+	list, byName = sorted, totals
 	dirty = false
 end
 
@@ -71,7 +66,3 @@ function Ranking:GetEntry(name)
 	return byName[name]
 end
 
-function Ranking:GetVoterCount()
-	if dirty then Rebuild() end
-	return voters
-end

@@ -304,7 +304,6 @@ function Comm:OnMessage(prefix, text, _, sender)
 
 	AddPeer(replyTo)
 	NR.Votes:Touch(sender)
-	self.lastReceived = GetServerTime()
 	handler(sender, replyTo, a, b, c, d)
 end
 
@@ -372,18 +371,3 @@ function Comm:Disable()
 	end
 end
 
-function Comm:GetStatus()
-	local online = 0
-	for _ in pairs(peers) do
-		online = online + 1
-	end
-	return {
-		enabled = enabled,
-		channel = self:GetChannelId(),
-		guild = IsInGuild(),
-		group = Compat.GetGroupChannel(),
-		online = online,
-		queue = #queue,
-		last = self.lastReceived,
-	}
-end

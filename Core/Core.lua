@@ -77,7 +77,6 @@ end
 
 function NR:IsBlocked(voter)
 	if voter == NR.player then return false end
-	if NR.db.settings.blocked[voter] then return true end
 	return NR.Compat.IsIgnored(voter)
 end
 
@@ -89,12 +88,11 @@ NR:On("ADDON_LOADED", function(name)
 	db.regions = db.regions or {}
 	db.settings = db.settings or {}
 	if db.settings.sync == nil then db.settings.sync = true end
-	db.settings.blocked = db.settings.blocked or {}
 	if db.version < 2 then
 		db.regions = {}
-		db.settings.blocked = {}
 		db.version = 2
 	end
+	db.settings.blocked = nil
 	db.log = nil
 	db.settings.debug = nil
 	NR.db = db
@@ -115,41 +113,7 @@ local commands = {}
 function commands.help()
 	NR:Print("v" .. NR.VERSION .. " commands:")
 	Line("/nr - open or close the leaderboard")
-	Line("/nr vote <Name> <1-3> - vote without the /who window (0 removes your vote)")
-	Line("/nr top [N] - print the top N names in your chat (default 10)")
 	Line("/nr sync on|off - share votes with other players or keep them local")
-	Line("/nr block <Name> - ignore that player's votes (/nr unblock <Name> to undo)")
-	Line("/nr status - show sync status")
-end
-
-local function FromTyped(text)
-	return (text:lower():gsub("(%S)(%S*)", function(first, others)
-		return first:upper() .. others
-	end))
-end
-
-function commands.vote(rest)
-	local name, value = rest:match("^(.-)%s+(%d)$")
-	value = tonumber(value)
-	if not name or name == "" or not value or value > NR.MAX_VOTE then
-		NR:Print("usage: /nr vote <Name> <1-3>  (0 removes your vote)")
-		return
-	end
-	NR.Votes:CastLocal(FromTyped(name), value)
-end
-
-function commands.top(rest)
-	local list = NR.Ranking:GetList()
-	if #list == 0 then
-		NR:Print("no votes yet.")
-		return
-	end
-	local n = math.min(math.max(tonumber(rest) or 10, 1), 50, #list)
-	NR:Print(("top %d names:"):format(n))
-	for i = 1, n do
-		local entry = list[i]
-		Line(("%d. %s - %d points (%d votes)"):format(i, NR.ColoredName(entry.name), entry.points, entry.votes))
-	end
 end
 
 function commands.sync(rest)
@@ -165,35 +129,6 @@ function commands.sync(rest)
 	else
 		NR:Print("sync is " .. (NR.db.settings.sync and "on" or "off") .. ". Use /nr sync on|off.")
 	end
-end
-
-local function SetBlocked(rest, blocked)
-	local name = NR.NormalizeName(FromTyped(rest))
-	if not name then
-		NR:Print("usage: /nr " .. (blocked and "block" or "unblock") .. " <Name>")
-		return
-	end
-	NR.db.settings.blocked[name] = blocked or nil
-	NR.Ranking:Invalidate()
-	NR:Fire("VOTES_CHANGED")
-	NR:Print(name .. (blocked and "'s votes are now ignored." or "'s votes count again."))
-end
-
-function commands.block(rest) SetBlocked(rest, true) end
-function commands.unblock(rest) SetBlocked(rest, false) end
-
-function commands.status()
-	local status = NR.Comm:GetStatus()
-	NR:Print(("v%s | sync %s | channel %s | addon users online %d | guild %s | group %s | queued messages %d | voters %d | last message %s"):format(
-		NR.VERSION,
-		NR.db.settings.sync and "on" or "off",
-		status.channel and ("#" .. status.channel) or "none",
-		status.online,
-		status.guild and "yes" or "no",
-		status.group or "none",
-		status.queue,
-		NR.Ranking:GetVoterCount(),
-		status.last and NR.Ago(status.last) or "never"))
 end
 
 SLASH_NAMESRANKING1 = "/nr"

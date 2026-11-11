@@ -26,11 +26,7 @@ Search for **Names Ranking** in the CurseForge app under your WoW Forever instal
 | Command | What it does |
 | --- | --- |
 | `/nr` | Open or close the leaderboard |
-| `/nr vote <Name> <1-3>` | Vote without the `/who` window (`0` removes your vote) |
-| `/nr top [N]` | Print the top N names in your own chat (default 10) |
 | `/nr sync on\|off` | Share votes with other players, or keep them on this computer |
-| `/nr block <Name>` / `/nr unblock <Name>` | Ignore or restore a player's votes |
-| `/nr status` | Show sync status (channel, addon users online, queued messages, voters, last message) |
 
 ## How sync works
 
