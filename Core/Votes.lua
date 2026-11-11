@@ -59,6 +59,19 @@ function Votes:Prune()
 			data.votes[voter] = nil
 		end
 	end
+
+	local referenced = {}
+	for voter, list in pairs(data.votes) do
+		referenced[voter] = true
+		for target in pairs(list) do
+			referenced[target] = true
+		end
+	end
+	for name in pairs(data.classCache) do
+		if not referenced[name] then
+			data.classCache[name] = nil
+		end
+	end
 end
 
 function Votes:GetAll()
@@ -80,9 +93,15 @@ function Votes:Touch(voter)
 end
 
 function Votes:CacheClass(name, classFile)
-	if classFile and classFile ~= "" then
-		data.classCache[name] = classFile
-	end
+	if not data or not name or not NR.Compat.GetClassId(classFile) then return end
+	if data.classCache[name] == classFile then return end
+	data.classCache[name] = classFile
+	NR:Fire("CLASSES_CHANGED")
+end
+
+function Votes:LearnClass(name, classId)
+	if not data or not name or data.classCache[name] then return end
+	self:CacheClass(name, NR.Compat.GetClassFile(classId))
 end
 
 function Votes:GetClass(name)
@@ -144,9 +163,10 @@ function Votes:CastLocal(target, value)
 	return true
 end
 
-function Votes:ApplyRemote(voter, target, value, ts)
+function Votes:ApplyRemote(voter, target, value, ts, classId)
 	target, value, ts = NR.NormalizeName(target), tonumber(value), tonumber(ts)
 	if not IsValid(voter, target, value, ts) then return false end
+	self:LearnClass(target, classId)
 
 	local list = data.votes[voter]
 	local existing = list and list[target]
@@ -176,6 +196,7 @@ function Votes:ApplySnapshot(voter, entries, snap)
 		if stored < MAX_STORED_PER_VOTER and IsValid(voter, target, value, ts) and not incoming[target]
 			and (value == 0 or active < MAX_VOTES_PER_VOTER) then
 			incoming[target] = { value, ts }
+			self:LearnClass(target, entry[4])
 			stored = stored + 1
 			if value > 0 then active = active + 1 end
 		end

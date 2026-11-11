@@ -363,4 +363,5 @@ end
 
 function Leaderboard:Init()
 	NR:Listen("VOTES_CHANGED", function() Leaderboard:Refresh(false) end)
+	NR:Listen("CLASSES_CHANGED", function() Leaderboard:Refresh(false) end)
 end

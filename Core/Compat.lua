@@ -45,6 +45,34 @@ function Compat.IsIgnored(fullName)
 	return ok and ignored == true
 end
 
+local MAX_CLASS_ID = 30
+local classIds
+
+function Compat.GetClassFile(classId)
+	classId = tonumber(classId)
+	if not classId or classId < 1 or classId > MAX_CLASS_ID or classId ~= math.floor(classId) then return nil end
+	if C_CreatureInfo and C_CreatureInfo.GetClassInfo then
+		local info = C_CreatureInfo.GetClassInfo(classId)
+		return info and info.classFile
+	end
+	if GetClassInfo then
+		local _, classFile = GetClassInfo(classId)
+		return classFile
+	end
+end
+
+function Compat.GetClassId(classFile)
+	if type(classFile) ~= "string" then return nil end
+	if not classIds then
+		classIds = {}
+		for id = 1, MAX_CLASS_ID do
+			local file = Compat.GetClassFile(id)
+			if file then classIds[file] = id end
+		end
+	end
+	return classIds[classFile]
+end
+
 function Compat.GetNumWhoResults()
 	if C_FriendList and C_FriendList.GetNumWhoResults then
 		return C_FriendList.GetNumWhoResults() or 0

@@ -32,6 +32,11 @@ local missed = {}
 local listAsked = 0
 local lastHello, helloPending = 0, false
 local enabled = false
+local myClassId
+
+local function ClassIdOf(name)
+	return Compat.GetClassId(NR.Votes:GetClass(name))
+end
 
 local function Enqueue(msg, chatType, target)
 	if #queue >= MAX_QUEUE then
@@ -164,7 +169,7 @@ end
 
 local function HelloMessage()
 	local count, hash = NR.Votes:GetSummary(NR.player)
-	return table.concat({ "H", NR.PROTOCOL, count, hash }, SEP)
+	return table.concat({ "H", NR.PROTOCOL, count, hash, myClassId }, SEP)
 end
 
 function Comm:SendHello()
@@ -199,7 +204,7 @@ end
 
 function Comm:BroadcastVote(target, value, ts)
 	if not enabled then return end
-	local msg = table.concat({ "V", NR.PROTOCOL, target, value, ts }, SEP)
+	local msg = table.concat({ "V", NR.PROTOCOL, target, value, ts, ClassIdOf(target) }, SEP)
 	Broadcast(msg)
 
 	local names = {}
@@ -215,8 +220,13 @@ end
 
 local function SendSnapshot(target)
 	local entries = {}
-	for name, entry in pairs(NR.Votes:GetVotesBy(NR.player) or {}) do
-		entries[#entries + 1] = name .. "," .. entry[1] .. "," .. entry[2]
+	for name, vote in pairs(NR.Votes:GetVotesBy(NR.player) or {}) do
+		local text = name .. "," .. vote[1] .. "," .. vote[2]
+		local classId = vote[1] > 0 and ClassIdOf(name)
+		if classId then
+			text = text .. "," .. classId
+		end
+		entries[#entries + 1] = text
 	end
 
 	local budget = MAX_MESSAGE - 32
@@ -241,7 +251,8 @@ end
 
 local handlers = {}
 
-function handlers.H(sender, replyTo, count, hash)
+function handlers.H(sender, replyTo, count, hash, classId)
+	NR.Votes:CacheClass(sender, Compat.GetClassFile(classId))
 	count = tonumber(count)
 	if not count or not hash then return end
 	local myCount, myHash = NR.Votes:GetSummary(sender)
@@ -252,8 +263,8 @@ function handlers.H(sender, replyTo, count, hash)
 	Enqueue(table.concat({ "R", NR.PROTOCOL }, SEP), "WHISPER", replyTo)
 end
 
-function handlers.V(sender, _, target, value, ts)
-	NR.Votes:ApplyRemote(sender, target, value, ts)
+function handlers.V(sender, _, target, value, ts, classId)
+	NR.Votes:ApplyRemote(sender, target, value, ts, classId)
 end
 
 function handlers.R(sender, replyTo)
@@ -283,8 +294,8 @@ function handlers.B(sender, _, part, total, snap, payload)
 	local entries = {}
 	for i = 1, s.total do
 		for entry in s.parts[i]:gmatch("[^;]+") do
-			local name, value, ts = strsplit(",", entry)
-			entries[#entries + 1] = { name, value, ts }
+			local name, value, ts, classId = strsplit(",", entry)
+			entries[#entries + 1] = { name, value, ts, classId }
 		end
 	end
 	NR.Votes:ApplySnapshot(sender, entries, snap)
@@ -309,6 +320,7 @@ end
 
 function Comm:Init()
 	Compat.RegisterPrefix(NR.PREFIX)
+	myClassId = Compat.GetClassId(select(2, UnitClass("player")))
 	notFoundPattern = NotFoundPattern()
 	Compat.AddChatFilter("CHAT_MSG_SYSTEM", HideNotFound)
 	Compat.AddChatFilter("CHAT_MSG_CHANNEL_LIST", HideMemberList)
