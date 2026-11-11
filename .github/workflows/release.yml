@@ -3,12 +3,13 @@ name: Release
 on:
   push:
     branches:
+      - main
       - develop
     tags:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
@@ -19,4 +20,27 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Tag the TOC version
+        id: tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          version=$(sed -n 's/^## Version:[[:space:]]*//p' NamesRanking.toc | tr -d '\r')
+          if [ -z "$version" ]; then
+            echo "::error::No ## Version line in NamesRanking.toc"
+            exit 1
+          fi
+          tag="v$version"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            if [ "$(git rev-list -n 1 "$tag")" = "$(git rev-parse HEAD)" ]; then
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::notice::$tag already exists on another commit. Bump ## Version in NamesRanking.toc to publish a new release."
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            git tag "$tag"
+            git push origin "$tag"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: BigWigsMods/packager@v2
+        if: github.ref != 'refs/heads/main' || steps.tag.outputs.publish == 'true'
