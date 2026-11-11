@@ -3,12 +3,18 @@ local _, NR = ...
 local UnitMenu = {}
 NR.UnitMenu = UnitMenu
 
-local MENU_TAG = "MENU_UNIT_TARGET"
+local MENU_TAGS = {
+	"MENU_UNIT_PLAYER",
+	"MENU_UNIT_PARTY",
+	"MENU_UNIT_RAID_PLAYER",
+	"MENU_UNIT_ENEMY_PLAYER",
+	"MENU_UNIT_TARGET",
+}
 
 local function ResolveTarget(contextData)
 	local unit = contextData and contextData.unit
 	if not unit or not UnitIsPlayer(unit) or UnitIsUnit(unit, "player") then return nil end
-	local name = UnitName(unit)
+	local name = GetUnitName(unit, true)
 	if type(name) ~= "string" or NR.Compat.IsSecret(name) then return nil end
 	name = NR.NormalizeName(name)
 	if not name or name == NR.player then return nil end
@@ -42,5 +48,7 @@ end
 
 function UnitMenu:Init()
 	if not (Menu and Menu.ModifyMenu) then return end
-	Menu.ModifyMenu(MENU_TAG, AddVoteEntries)
+	for _, tag in ipairs(MENU_TAGS) do
+		Menu.ModifyMenu(tag, AddVoteEntries)
+	end
 end
