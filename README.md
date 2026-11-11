@@ -36,7 +36,7 @@ Search for **Names Ranking** in the CurseForge app under your WoW Forever instal
 - Each client only sends **its own** votes, and only counts votes it hears **from the voter directly**. The game server sets who sent each message, so nobody can vote in someone else's name.
 - A new vote is whispered right away to up to 10 online players. Every 3 seconds each client also says HELLO to the next online player: how many votes it has, plus a hash of them. Anyone whose copy doesn't match asks for the full list by whisper, so everyone online catches up without flooding anyone.
 - Two players only exchange votes while both are online. A vote never reaches you through a third player, because that would let anyone invent votes in someone else's name.
-- Each vote also carries the class of the name, and HELLO carries the sender's class, so names show in class colors even for players you've never seen. A class you saw yourself always wins over one you were told.
+- Each vote also carries the class of the name, and HELLO carries the sender's class, so names show in class colors even for players you've never seen. A class you saw yourself always wins over one you were told. The addon also notes the class of players you target, mouse over, see on nameplates, group with, have in your guild or hear in chat, without sending anything.
 - Limits: 60 live votes per voter per hour, 2000 active votes per voter (removed votes don't count), no self votes, and timestamps no more than 5 minutes in the future.
 - Nothing is sent during boss encounters or while the game locks addon messages.
 
