@@ -3,7 +3,7 @@
 Vote for the best character names straight from the `/who` window and see the leaderboard with `/nr`.
 
 - Every row in `/who` gets four buttons: **1**, **2** and **3** points, and **X** to remove your vote.
-- You can vote for as many characters as you like, but only once per character. Voting again changes your vote, it never adds a second one.
+- You can vote for as many characters as you like, but only once per character. A vote is final: to change it, remove it with **X** and vote again.
 - A name's score is the **sum of all the points it received**. Ties go to the name with more 3-point votes, then more votes overall.
 - The button on the minimap opens the leaderboard too. Drag it to move it around the map.
 - The **My votes** tab in `/nr` has an **X** on each row to remove that vote.

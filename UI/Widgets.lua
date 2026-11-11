@@ -65,6 +65,8 @@ local function ShowVoteTooltip(button)
 		GameTooltip:AddLine(mine > 0 and "Click to remove your vote" or "You haven't voted for this name", 0.6, 0.6, 0.6)
 	elseif mine == button.value then
 		GameTooltip:AddLine("This is your current vote", 0.6, 0.6, 0.6)
+	elseif mine > 0 then
+		GameTooltip:AddLine("Remove your vote to vote again", 0.6, 0.6, 0.6)
 	else
 		GameTooltip:AddLine(("Click to give %d point%s"):format(button.value, button.value == 1 and "" or "s"), 0.6, 0.6, 0.6)
 	end
@@ -82,6 +84,7 @@ function NR.UpdateVoteButtons(holder)
 		local button = holder.buttons[i]
 		local active = mine == i
 		button.fill:SetShown(active)
+		button:SetEnabled(mine == 0)
 		if active then
 			button.label:SetTextColor(0.15, 0.08, 0)
 		elseif mine == 0 then

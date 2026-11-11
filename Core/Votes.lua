@@ -124,6 +124,10 @@ function Votes:CastLocal(target, value)
 	if current == value then
 		return false
 	end
+	if current > 0 and value > 0 then
+		NR:Print(("you already voted for %s. Remove your vote first."):format(target))
+		return false
+	end
 	if not HasRoom(mine, current, value) then
 		NR:Print(("you've reached the limit of %d votes."):format(MAX_VOTES_PER_VOTER))
 		return false
