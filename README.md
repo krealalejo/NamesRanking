@@ -9,7 +9,7 @@ Vote for the best character names straight from the `/who` window or the `/nr` l
 - In the **Top** tab of `/nr`, hover a name to vote: **1**, **2** and **3** appear on names you haven't voted for, and **X** on the ones you have. A star shows your vote on each row. The top 3 names are bigger.
 - Hover a name to see its rank, points, votes and who voted for it first. The footer shows how many names and voters your client knows.
 - In the **My votes** tab, hover a row and click **X** to remove that vote.
-- Right-click a player's target portrait to vote 1, 2 or 3, or remove your vote, from the **Names Ranking** section of the menu.
+- Right-click a player's target portrait to vote 1, 2 or 3, or remove your vote, from the **Names Ranking** submenu.
 - Votes are shared between players who have the addon. There is no central server, so each player's leaderboard is built from the votes their client has heard.
 
 ## Install

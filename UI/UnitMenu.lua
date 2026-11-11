@@ -31,16 +31,16 @@ local function AddVoteEntries(_, root, contextData)
 	local mine = NR.Votes:GetMyVote(name)
 
 	root:CreateDivider()
-	root:CreateTitle("Names Ranking")
+	local submenu = root:CreateButton("Names Ranking")
 	for value = 1, NR.MAX_VOTE do
-		local radio = root:CreateRadio(
+		local radio = submenu:CreateRadio(
 			("Vote %d"):format(value),
 			function(data) return NR.Votes:GetMyVote(name) == data end,
 			function(data) NR.Votes:CastLocal(name, data) end,
 			value)
 		radio:SetEnabled(mine == 0 or mine == value)
 	end
-	local remove = root:CreateButton("Remove vote", function()
+	local remove = submenu:CreateButton("Remove vote", function()
 		NR.Votes:CastLocal(name, 0)
 	end)
 	remove:SetEnabled(mine > 0)
