@@ -1,11 +1,12 @@
 # Names Ranking
 
-Vote for the best character names straight from the `/who` window and see the leaderboard with `/nr`.
+Vote for the best character names straight from the `/who` window or the `/nr` leaderboard.
 
 - Every row in `/who` gets four buttons: **1**, **2** and **3** points, and **X** to remove your vote.
 - You can vote for as many characters as you like, but only once per character. A vote is final: to change it, remove it with **X** and vote again.
 - A name's score is the **sum of all the points it received**. Ties go to the name with more 3-point votes, then more votes overall.
 - The button on the minimap opens the leaderboard too. Drag it to move it around the map.
+- The **Realm top** tab in `/nr` has **1**, **2** and **3** buttons on every name you haven't voted for, and a **First vote** column with the player whose current vote for that name is the oldest.
 - The **My votes** tab in `/nr` has an **X** on each row to remove that vote.
 - Votes are shared between players who have the addon. There is no central server, so each player's leaderboard is built from the votes their client has heard.
 

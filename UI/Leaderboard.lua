@@ -3,26 +3,33 @@ local _, NR = ...
 local Leaderboard = {}
 NR.Leaderboard = Leaderboard
 
-local WIDTH, HEIGHT = 440, 450
+local WIDTH, HEIGHT = 560, 450
 local ROWS, ROW_HEIGHT = 16, 20
 local LIST_TOP = -84
-local COLUMNS = {
-	{ x = 14, width = 46, justify = "LEFT" },
-	{ x = 62, width = 196, justify = "LEFT" },
-	{ x = 262, width = 64, justify = "RIGHT" },
-	{ x = 330, width = 70, justify = "RIGHT" },
-}
-local MINE_COLUMNS = {
+local TOP_COLUMNS = {
 	{ x = 14, width = 46, justify = "LEFT" },
 	{ x = 62, width = 150, justify = "LEFT" },
-	{ x = 216, width = 60, justify = "RIGHT" },
-	{ x = 278, width = 60, justify = "RIGHT" },
-	{ x = 344, width = 60, justify = "CENTER" },
+	{ x = 214, width = 50, justify = "RIGHT" },
+	{ x = 266, width = 44, justify = "RIGHT" },
+	{ x = 322, width = 118, justify = "LEFT" },
+	{ x = 446, width = 62, justify = "CENTER" },
 }
-local REMOVE_SIZE = 18
+local COLUMNS = {
+	top = TOP_COLUMNS,
+	mine = {
+		{ x = 14, width = 46, justify = "LEFT" },
+		{ x = 62, width = 220, justify = "LEFT" },
+		{ x = 290, width = 70, justify = "RIGHT" },
+		{ x = 370, width = 60, justify = "RIGHT" },
+		{ x = 446, width = 62, justify = "CENTER" },
+	},
+	recent = { TOP_COLUMNS[1], TOP_COLUMNS[2], TOP_COLUMNS[3], TOP_COLUMNS[4] },
+}
+local MAX_COLUMNS = #TOP_COLUMNS
+local BUTTON_SIZE, BUTTON_GAP = 18, 2
 local CREDIT = "with |TInterface\\AddOns\\NamesRanking\\Media\\Heart.tga:12:12|t by kames"
 local HEADERS = {
-	top = { "#", "Name", "Points", "Votes" },
+	top = { "#", "Name", "Points", "Votes", "First vote", "Vote" },
 	mine = { "Rank", "Name", "Your vote", "Points", "Remove" },
 	recent = { "When", "Name", "", "Vote" },
 }
@@ -51,7 +58,7 @@ local function BuildItems(filter)
 	if mode == "top" then
 		for _, entry in ipairs(NR.Ranking:GetList()) do
 			if Matches(entry.name, filter) then
-				items[#items + 1] = { name = entry.name, entry.rank, NR.ColoredName(entry.name), entry.points, entry.votes }
+				items[#items + 1] = { name = entry.name, entry.rank, NR.ColoredName(entry.name), entry.points, entry.votes, NR.ColoredName(entry.firstVoter), "" }
 			end
 		end
 	elseif mode == "mine" then
@@ -84,6 +91,7 @@ local function ShowRowTooltip(row)
 	if entry then
 		GameTooltip:AddLine(("Rank #%d - %d points"):format(entry.rank, entry.points), 1, 1, 1)
 		GameTooltip:AddLine(("%d votes, %d of them worth 3 points"):format(entry.votes, entry.threes), 0.8, 0.8, 0.8)
+		GameTooltip:AddLine(("First voted by %s, %s"):format(NR.ColoredName(entry.firstVoter), NR.Ago(entry.firstTs)), 0.8, 0.8, 0.8)
 	end
 	local mine = NR.Votes:GetMyVote(name)
 	if mine > 0 then
@@ -118,19 +126,24 @@ local function CreateRow(parent, i)
 	row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
 
 	row.cols = {}
-	for c = 1, #COLUMNS do
+	for c = 1, MAX_COLUMNS do
 		local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 		text:SetWordWrap(false)
 		row.cols[c] = text
 	end
 
-	local removeColumn = MINE_COLUMNS[5]
-	row.remove = NR.CreateRemoveButton(row, REMOVE_SIZE)
+	local removeColumn = COLUMNS.mine[5]
+	row.remove = NR.CreateRemoveButton(row, BUTTON_SIZE)
 	row.remove:SetPoint("CENTER", row, "LEFT", removeColumn.x + removeColumn.width / 2 - 12, 0)
 	row.remove:SetScript("OnClick", OnRemoveClick)
 	row.remove:SetScript("OnEnter", ShowRemoveTooltip)
 	row.remove:SetScript("OnLeave", GameTooltip_Hide)
 	row.remove:Hide()
+
+	local voteColumn = TOP_COLUMNS[6]
+	row.vote = NR.CreateVoteButtons(row, BUTTON_SIZE, BUTTON_GAP, false)
+	row.vote:SetPoint("CENTER", row, "LEFT", voteColumn.x + voteColumn.width / 2 - 12, 0)
+	row.vote:Hide()
 
 	row:SetScript("OnEnter", ShowRowTooltip)
 	row:SetScript("OnLeave", GameTooltip_Hide)
@@ -229,7 +242,7 @@ local function CreateMainFrame()
 	f.search = search
 
 	f.headers = {}
-	for c = 1, #MINE_COLUMNS do
+	for c = 1, MAX_COLUMNS do
 		f.headers[c] = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 	end
 	local divider = f:CreateTexture(nil, "ARTWORK")
@@ -271,7 +284,7 @@ end
 function Leaderboard:PlaceColumns()
 	if frame.columnsMode == mode then return end
 	frame.columnsMode = mode
-	local columns = mode == "mine" and MINE_COLUMNS or COLUMNS
+	local columns = COLUMNS[mode]
 	for c, header in ipairs(frame.headers) do
 		local col = columns[c]
 		header:SetShown(col ~= nil)
@@ -282,7 +295,11 @@ function Leaderboard:PlaceColumns()
 	end
 	for _, row in ipairs(frame.rows) do
 		for c, text in ipairs(row.cols) do
-			PlaceColumn(text, row, "LEFT", columns[c].x - 12, 0, columns[c])
+			local col = columns[c]
+			text:SetShown(col ~= nil)
+			if col then
+				PlaceColumn(text, row, "LEFT", col.x - 12, 0, col)
+			end
 		end
 	end
 end
@@ -292,10 +309,17 @@ function Leaderboard:RenderRows()
 		local item = items[offset + i]
 		row.item = item
 		if item then
-			for c = 1, #COLUMNS do
+			for c = 1, MAX_COLUMNS do
 				row.cols[c]:SetText(item[c] ~= nil and tostring(item[c]) or "")
 			end
 			row.remove:SetShown(mode == "mine")
+			if mode == "top" then
+				row.vote.name = item.name
+				NR.UpdateVoteButtons(row.vote)
+			else
+				row.vote.name = nil
+				row.vote:Hide()
+			end
 			row:Show()
 		else
 			row:Hide()
@@ -323,7 +347,7 @@ function Leaderboard:Refresh(resetScroll)
 	if filter ~= "" then
 		frame.empty:SetText("No names match your search.")
 	elseif mode == "mine" then
-		frame.empty:SetText("You haven't voted yet. Open /who and click 1, 2 or 3 next to a name.")
+		frame.empty:SetText("You haven't voted yet. Click 1, 2 or 3 next to a name in Realm top or /who.")
 	else
 		frame.empty:SetText("No votes yet. Open /who and vote for your favorite names!")
 	end

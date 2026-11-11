@@ -33,6 +33,9 @@ local function Rebuild()
 						total = { name = target, points = 0, votes = 0, threes = 0 }
 						totals[target] = total
 					end
+					if not total.firstTs or entry[2] < total.firstTs then
+						total.firstVoter, total.firstTs = voter, entry[2]
+					end
 					total.points = total.points + value
 					total.votes = total.votes + 1
 					if value == NR.MAX_VOTE then
